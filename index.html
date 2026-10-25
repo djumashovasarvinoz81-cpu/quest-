@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Вокзал: орысша сөйлесу симуляциясы</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f2f5f8;--card:#fff;--ink:#14202e;--mute:#5d6b7a;--board:#10243c;--amber:#f2b01e;--ok:#1f9d6b;--bad:#d64545;--line:#d9e0e8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1522;--card:#14233a;--ink:#eaf0f7;--mute:#9db0c4;--board:#071120;--line:#25364f}}
+:root[data-theme="dark"]{--bg:#0b1522;--card:#14233a;--ink:#eaf0f7;--mute:#9db0c4;--board:#071120;--line:#25364f}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;line-height:1.5}
+main{max-width:520px;margin:0 auto;padding:16px}
+.board{background:var(--board);color:var(--amber);border-radius:14px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.board b{font-size:1.25rem;font-weight:800}.board span{font-size:.82rem;color:#c9d6e4;text-align:right}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 2px;font-size:.9rem}
+.hud label{color:var(--mute);display:flex;gap:6px;align-items:center}
+.nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.nav button{font:inherit;font-weight:600;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:12px;padding:10px;cursor:pointer}
+.nav button.on{border-color:var(--amber)}.nav button:disabled{color:var(--mute);opacity:.7;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px}
+.ban{display:flex;align-items:center;gap:14px;margin-bottom:14px}.ban i{font-style:normal;font-size:2.6rem}
+.ban h2{margin:0;font-size:1.15rem}.ban p{margin:2px 0 0;color:var(--mute);font-size:.88rem}
+.who{display:flex;gap:12px;flex-wrap:wrap}
+.av{width:92px;text-align:center;font:inherit;font-size:.78rem;color:var(--ink);background:none;border:0;cursor:pointer;padding:0}
+.av i{font-style:normal;font-size:2.2rem;display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--bg);border:2px solid var(--line);margin:0 auto 4px}
+.av.fin i{border-color:var(--ok)}
+.bub{background:var(--bg);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:12px 14px;margin-bottom:12px}
+.bub b{font-size:1.05rem}.bub small{display:block;color:var(--mute);margin-top:2px}
+.bub.bad{border-color:var(--bad)}
+.opt{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);background:var(--card);border:2px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 8px;cursor:pointer}
+.opt:focus-visible,.btn:focus-visible,.av:focus-visible,.nav button:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.btn{font:inherit;font-weight:800;border:0;border-radius:12px;padding:13px 20px;background:var(--amber);color:#1b1500;cursor:pointer;width:100%}
+.msg{background:color-mix(in srgb,var(--amber) 22%,var(--card));border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:.92rem}
+details{font-size:.92rem}summary{cursor:pointer;font-weight:600}
+ul.ph{padding-left:20px;margin:8px 0}
+.slots{color:var(--mute)}
+h1{font-size:1.3rem;margin:0 0 8px}
+p.l{margin:0 0 12px}
+</style>
+</head>
+<body>
+<main id="m"></main>
+<script>
+var POOL=["Я люблю поезда.","Сколько вам лет?","До свидания.","Какая сегодня погода?","Как вас зовут?","Я хочу спать.","Где находится школа?","Мне нужен чай."];
+var LOC={hall:{t:"Вокзал залы",e:"🚉",s:"Адамдар асығып жүр."},kassa:{t:"Касса",e:"🎫",s:"Терезенің алдында кезек тұр."},wait:{t:"Күту залы",e:"🛋️",s:"Орындықтарда жолаушылар отыр."},plat:{t:"Перрон",e:"🚆",s:"Пойыз әлі келген жоқ."}};
+var G=[
+{id:"a",loc:"hall",e:"🧑",nm:"Өтіп бара жатқан адам",st:[
+{n:"Вам помочь?",k:"Көмектесейін бе?",p:"Извините, где здесь касса?",d:"Извините, где здесь школа?"},
+{n:"Касса справа, у окна. Что-то ещё?",k:"Касса оң жақта, терезенің жанында. Тағы бірдеңе керек пе?",p:"Во сколько открывается касса?",d:"Во сколько открывается магазин?"}],
+bye:"Круглосуточно. Удачи!|Тәулік бойы жұмыс істейді. Сәттілік!"},
+{id:"b",loc:"kassa",e:"🧔",nm:"Кезектегі адам",st:[
+{n:"Здесь очередь. Вы тоже за билетом?",k:"Мұнда кезек. Сен де билетке келдің бе?",p:"Да. Кто последний в очереди?",d:"Нет. Я ищу библиотеку."}],
+bye:"Я последний. Становитесь за мной.|Мен соңғымын. Менің артымда тұр."},
+{id:"c",loc:"kassa",e:"💁‍♀️",nm:"Кассир",st:[
+{n:"Здравствуйте. Слушаю вас.",k:"Сәлеметсіз бе. Тыңдап тұрмын.",p:"Дайте, пожалуйста, один билет до Астаны.",d:"Дайте, пожалуйста, один хлеб."},
+{n:"На какое число?",k:"Қай күнге?",p:"На сегодня, пожалуйста.",d:"На прошлый год, пожалуйста."},
+{n:"С вас восемь тысяч тенге. Наличными или картой?",k:"Сізден сегіз мың теңге. Қолма-қол ма, картамен бе?",p:"Я заплачу картой.",d:"Я не люблю деньги."},
+{n:"Вот ваш билет. Что-то ещё?",k:"Міне, билетіңіз. Тағы бірдеңе керек пе?",p:"С какой платформы отправляется поезд?",d:"С какой станции отправляется самолёт?"}],
+bye:"С третьей платформы. Счастливого пути!|Үшінші платформадан. Жолыңыз болсын!"},
+{id:"d",loc:"wait",e:"👵",nm:"Әже",st:[
+{n:"Ох, сумка такая тяжёлая...",k:"Ой, сөмке өте ауыр екен...",p:"Вам помочь с сумкой?",d:"Вы не видели мою сумку?"},
+{n:"Спасибо вам огромное!",k:"Сізге үлкен рахмет!",p:"Не за что.",d:"Я не понимаю."}],
+bye:"Хорошего пути, дорогой!|Жолың болсын, қымбаттым!"},
+{id:"e",loc:"plat",e:"🧑‍🦱",nm:"Жолаушы",st:[
+{n:"Что-то случилось? Вам что-то нужно?",k:"Бірдеңе болды ма? Саған бірдеңе керек пе?",p:"Помогите мне с чемоданом, пожалуйста.",d:"Продайте мне чемодан, пожалуйста."}],
+bye:"Конечно, давайте. Тяжёлый какой!|Әрине, әкел. Қандай ауыр!"},
+{id:"f",loc:"plat",e:"🧑‍✈️",nm:"Жол серік",st:[
+{n:"Добрый день. Предъявите билет, пожалуйста.",k:"Қайырлы күн. Билетіңізді көрсетіңіз.",p:"Вот мой билет.",d:"У меня нет сумки."},
+{n:"Проходите. Ваш вагон шестой.",k:"Өтіңіз. Сіздің вагоныңыз алтыншы.",p:"Спасибо большое за помощь!",d:"До свидания, я пошёл домой."}],
+bye:"Счастливого пути!|Жолыңыз болсын!"}];
+var TOTAL=12,S,tm,m=document.getElementById("m");
+function npc(id){return G.filter(function(x){return x.id==id})[0]}
+function shuf(a){return a.sort(function(){return Math.random()-.5})}
+function mkopts(st){var x=POOL.filter(function(q){return q!=st.p});return shuf([st.p,st.d].concat(shuf(x).slice(0,2)))}
+function fmt(s){return Math.floor(s/60)+":"+("0"+s%60).slice(-2)}
+function intro(){clearInterval(tm);S={used:[],done:{},loc:"hall",talk:null,i:0,wrong:0,mist:0,kassa:0,plat:0,secs:300,end:0,tr:1,timer:0,msg:"",opts:[]};
+m.innerHTML='<div class="board"><b>Вокзал</b><span>Орысша сөйлесу симуляциясы</span></div><div class="card" style="margin-top:12px"><h1>Миссия</h1><p class="l">Сен вокзалдасың. Пойызға билет алып, пойызға отыру керек. Бәрін орысша айтасың. Кассаның қайда екенін өзің тауып ал: адамдардан сұра.</p><p class="l">Миссия 12 фраза қолданғанда ғана аяқталады.</p><div class="hud"><label><input type="checkbox" id="c1" checked> Аударманы көрсету</label><label><input type="checkbox" id="c2"> 5 минут таймер</label></div><button class="btn" id="go">Бастау</button></div>';
+document.getElementById("go").onclick=function(){S.tr=document.getElementById("c1").checked;S.timer=document.getElementById("c2").checked;if(S.timer)tm=setInterval(tick,1000);R()}}
+function tick(){S.secs--;var t=document.getElementById("t");if(t)t.textContent="⏱ "+fmt(S.secs);if(S.secs<=0){clearInterval(tm);S.end=2;R()}}
+function R(){if(S.end)return fin();
+var h='<div class="board"><b>Вокзал</b><span>Билет ал, пойызға отыр</span></div><div class="hud"><span id="t">'+(S.timer?"⏱ "+fmt(S.secs):"")+'</span><b>Фразалар '+S.used.length+'/'+TOTAL+'</b><label><input type="checkbox" '+(S.tr?"checked":"")+' onchange="S.tr=this.checked;R()"> Аударма</label></div><div class="nav">';
+Object.keys(LOC).forEach(function(k){var lock=(k=="kassa"&&!S.kassa)||(k=="plat"&&!S.plat);h+='<button '+(lock?"disabled":"")+' class="'+(S.loc==k?"on":"")+'" onclick="go(\''+k+'\')">'+(lock?"❓ Белгісіз":LOC[k].e+" "+LOC[k].t)+'</button>'});
+h+='</div>';if(S.msg)h+='<div class="msg">'+S.msg+'</div>';
+var L=LOC[S.loc];h+='<div class="card"><div class="ban"><i>'+L.e+'</i><div><h2>'+L.t+'</h2><p>'+L.s+'</p></div></div>';
+if(S.talk){var c=npc(S.talk),st=c.st[S.i];h+='<p class="slots">'+c.e+' '+c.nm+'</p><div class="bub '+(S.wrong?"bad":"")+'">'+(S.wrong?'<b>Что? Я не понял.</b>'+(S.tr?'<small>Не? Түсінбедім.</small>':'')+'<br><br>':'')+'<b>'+st.n+'</b>'+(S.tr?'<small>'+st.k+'</small>':'')+'</div>';
+S.opts.forEach(function(o,i){h+='<button class="opt" onclick="pick('+i+')">'+o+'</button>'})}
+else{h+='<div class="who">';G.filter(function(x){return x.loc==S.loc}).forEach(function(x){h+='<button class="av '+(S.done[x.id]?"fin":"")+'" onclick="talk(\''+x.id+'\')"><i>'+x.e+'</i>'+x.nm+'</button>'});h+='</div>'}
+h+='</div><div class="card"><details><summary>Үйренген фразалар ('+S.used.length+')</summary><ul class="ph">';
+S.used.forEach(function(p){h+='<li>'+p+'</li>'});h+='</ul><span class="slots">Қалғаны: '+(TOTAL-S.used.length)+'</span></details></div>';m.innerHTML=h}
+function go(k){if(S.talk)return;S.loc=k;S.msg="";R()}
+function talk(id){S.msg="";var c=npc(id);
+if(S.done[id]){S.msg=c.nm+': '+c.bye.split("|")[0];return R()}
+if(id=="c"&&!S.done.b){S.msg="Кассир сені көрмей тұр. Алдымен кезекке тұру керек.";return R()}
+if(id=="f"&&!["a","b","c","d","e"].every(function(k){return S.done[k]})){S.msg="Посадка ещё не началась. Вокзалдағы басқа істерді бітір (фразалар "+S.used.length+"/"+TOTAL+").";return R()}
+S.talk=id;S.i=0;S.wrong=0;S.opts=mkopts(c.st[0]);R()}
+function pick(i){var c=npc(S.talk),st=c.st[S.i];
+if(S.opts[i]!=st.p){S.wrong=1;S.mist++;return R()}
+S.used.push(st.p);S.wrong=0;S.i++;if(c.id=="a")S.kassa=1;
+if(S.i>=c.st.length){S.done[c.id]=1;S.talk=null;var b=c.bye.split("|");S.msg=c.nm+': <b>'+b[0]+'</b>'+(S.tr?' ('+b[1]+')':'');
+if(c.id=="c")S.plat=1;if(c.id=="f"&&S.used.length>=TOTAL){clearInterval(tm);S.end=1}}
+else S.opts=mkopts(c.st[S.i]);R()}
+function fin(){var w=S.end==1,h='<div class="board"><b>Вокзал</b><span>'+(w?"Миссия орындалды":"Уақыт бітті")+'</span></div><div class="card" style="margin-top:12px"><div class="ban"><i>'+(w?"🚆":"⏱")+'</i><div><h2>'+(w?"Пойызға отырдың!":"Пойыз кетіп қалды")+'</h2><p>Қателер: '+S.mist+'. Фразалар: '+S.used.length+'/'+TOTAL+'</p></div></div>';
+if(w)h+='<p class="l">Бүгін қолданған фразаларың:</p><ul class="ph">'+S.used.map(function(p){return"<li>"+p+"</li>"}).join("")+'</ul>';
+else h+='<p class="l">Қайталап көр. Әр сөйлесу сайын фразалар жаңа жағдайда қайталанады.</p>';
+m.innerHTML=h+'<button class="btn" onclick="intro()">Қайта ойнау</button></div>'}
+intro();
+</script>
+</body>
+</html>
